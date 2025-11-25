@@ -1,10 +1,14 @@
 package com.example.hello;
 
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
 public class HelloApp {
     public static void main(String[] args) {
-        System.out.println("Hello CI/CD!");
+        SpringApplication.run(HelloApp.class, args);
     }
-
     public String greet() {
         return "Hello CI/CD!";
     }
