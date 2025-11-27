@@ -43,18 +43,18 @@ pipeline{
             }
         }
     }
-}
 
-post {
-    always {
-        echo "pipeline finished"
+    post {
+        always {
+            echo "pipeline finished"
 
-    }
-    success {
-        echo "Build and push successful"
+        }
+        success {
+            echo "Build and push successful"
 
-    }
-    failure {
-        echo "Build or test failed"
+        }
+        failure {
+            echo "Build or test failed"
+        }
     }
 }
