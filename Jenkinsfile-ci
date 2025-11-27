@@ -30,7 +30,7 @@ pipeline{
 
         stage("Build Docker Image"){
             steps {
-                sh "docker build -t ${IMAGE_REPOSITORY}:latest ."\
+                sh "docker build -t ${IMAGE_REPOSITORY}:latest ."
             }
         }
 
@@ -44,38 +44,11 @@ pipeline{
                 }
             }
         }
-        // CD Pipeline
-        stage("Deploy to Local") {
-            steps{
-                echo "Deploying container"
-
-                sh "docker stop hello-ci-web || true"
-                sh "docker rm hello-ci-web || true"
-
-                withCredentials([usernamePassword(credentialsId : "$DOCKER_CREDENTIALS",
-                                passwordVariable: "DOCKER_PASS",
-                                usernameVariable: "DOCKER_USER")]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh "docker pull ${IMAGE_REPOSITORY}:latest"
-                }
-                sh "docker run -d --name hello-ci-web -p 8080:8080 ${IMAGE_REPOSITORY}:latest"
-
-            }
-        }
-        stage("Health check"){
-            steps{
-              sh """
-                echo 'Waiting for app to start'
-                sleep 5
-                curl -f http://localhost:8080/
-             """
-            }
-        }
     }
 
     post {
         always {
-            echo "pipeline finished"
+            echo "CI pipeline finished"
 
         }
         success {

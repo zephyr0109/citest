@@ -1,0 +1,60 @@
+pipeline{
+    agent any
+    environment {
+            DOCKER_CREDENTIALS = 'docker-hub'
+            GITHUB_CREDENTIALS = 'git-hub'
+            IMAGE_REPOSITORY = 'zephyr0109/cicdtest'
+    }
+    stages{
+        stage("Pull docker image") {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "$DOCKER_CREDENTIALS",
+                        passwordVariable: "DOCKER_PASS",
+                        usernameVariable: "DOCKER_USER"
+                    )
+                ]) {
+                    sh """
+                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                        docker pull ${IMAGE_REPOSITORY}:latest
+                    """
+                }
+            }
+
+        }
+        stage("Clean){
+            steps {
+                sh "docker stop hello-ci-web || true"
+                sh "docker rm hello-ci-web || true"
+            }
+
+        }
+        stage("Deploy"){
+            steps {
+                sh "docker run -d --name hello-ci-web -p 8080:8080 ${IMAGE_REPOSITORY}:latest"
+            }
+        }
+
+        stage("Health check"){
+                steps{
+                  sh """
+                    echo 'Waiting for app to start'
+                    sleep 10
+                    curl -f http://localhost:8080/
+                 """
+            }
+        }
+    }
+    post {
+        always {
+            echo "CD pipeline finished"
+        }
+        success {
+            echo "CD successful: container deployed"
+        }
+        failure {
+            echo "CD failed"
+        }
+    }
+}
