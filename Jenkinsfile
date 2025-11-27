@@ -58,11 +58,7 @@ pipeline{
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh "docker pull ${IMAGE_REPOSITORY}:latest"
                 }
-                sh """
-                    docker run -d \
-                    --name hello-ci-web \
-                    -p 8080:8080 ${IMAGE_REPOSITORY}:latest
-                """
+                sh "docker run -d --name hello-ci-web -p 8080:8080 ${IMAGE_REPOSITORY}:latest"
 
             }
         }
