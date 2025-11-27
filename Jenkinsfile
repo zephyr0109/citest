@@ -61,7 +61,7 @@ pipeline{
                 sh """
                     docker run -d \
                     --name hello-ci-web \
-                    -p 8080:8080
+                    -p 8080:8080 \
                     ${IMAGE_REPOSITORY}:latest
                 """
 
