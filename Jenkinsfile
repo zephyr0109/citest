@@ -52,14 +52,19 @@ pipeline{
                 sh "docker stop hello-ci-web || true"
                 sh "docker rm hello-ci-web || true"
 
-                sh "docker pull ${IMAGE_REPOSITORY}:latest"
-
+                withCredentials([usernamePassword(credentialsId : "$DOCKER_CREDENTIALS",
+                                passwordVariable: "DOCKER_PASS",
+                                usernameVariable: "DOCKER_USER")]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker pull ${IMAGE_REPOSITORY}:latest"
+                }
                 sh """
                     docker run -d \
                     --name hello-ci-web \
                     -p 8080:8080
                     ${IMAGE_REPOSITORY}:latest
                 """
+
             }
         }
         stage("Health check"){
