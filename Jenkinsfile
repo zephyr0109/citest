@@ -63,11 +63,13 @@ pipeline{
             }
         }
         stage("Health check"){
-            sh """
+            steps{
+              sh """
                 echo 'Waiting for app to start'
                 sleep 5
                 curl -f http://localhost:8080/
-            """
+             """
+            }
         }
     }
 
