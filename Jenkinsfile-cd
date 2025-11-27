@@ -23,7 +23,7 @@ pipeline{
             }
 
         }
-        stage("Clean){
+        stage("Clean"){
             steps {
                 sh "docker stop hello-ci-web || true"
                 sh "docker rm hello-ci-web || true"
