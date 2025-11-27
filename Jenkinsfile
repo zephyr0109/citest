@@ -6,10 +6,12 @@ pipeline{
         IMAGE_REPOSITORY = 'zephyr0109/cicdtest'
     }
 
+    // CI Pipeline
     stages {
         stage( 'Checkout') {
             steps {
-                git credentialsId : "${GITHUB_CREDENTIALS}", url: "https://github.com/zephyr0109/citest.git"
+                git credentialsId : "${GITHUB_CREDENTIALS}",
+                 url: "https://github.com/zephyr0109/citest.git"
 
             }
         }
@@ -41,6 +43,31 @@ pipeline{
                     sh "docker push ${IMAGE_REPOSITORY}:latest"
                 }
             }
+        }
+        // CD Pipeline
+        stage("Deploy to Local") {
+            steps{
+                echo "Deploying container"
+
+                sh "docker stop hello-ci-web || true"
+                sh "docker rm hello-ci-web || true"
+
+                sh "docker pull ${IMAGE_REPOSITORY}:latest"
+
+                sh """
+                    docker run -d \
+                    --name hello-ci-web \
+                    -p 8080:8080
+                    ${IMAGE_REPOSITORY}:latest
+                """
+            }
+        }
+        stage("Health check"){
+            sh """
+                echo 'Waiting for app to start'
+                sleep 5
+                curl -f http://localhost:8080/
+            """
         }
     }
 
