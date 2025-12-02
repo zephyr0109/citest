@@ -21,6 +21,9 @@ pipeline{
                         script : "git rev-parse --short HEAD",
                         returnStdout : true
                     ).trim()
+
+                   env.IMAGE_TAG = IMAGE_TAG
+                   echo "IMAGE_TAG: ${IMAGE_TAG}"
                 }
             }
         }
@@ -39,7 +42,10 @@ pipeline{
 
         stage("Build Docker Image"){
             steps {
-                sh "docker build -t ${IMAGE_REPOSITORY}:latest ."
+                sh "docker build -t ${IMAGE_REPOSITORY}:${IMAGE_TAG} ."
+                sh "docker tag ${IMAGE_REPOSITORY}:${IMAGE_TAG} ${IMAGE_REPOSITORY}:latest"
+
+
             }
         }
 
