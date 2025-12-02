@@ -62,7 +62,7 @@ pipeline{
 
         }
         success {
-            echo "Build and push successful, IMAGE_TAG = $(IMAGE_TAG)"
+            echo "Build and push successful, IMAGE_TAG = ${IMAGE_TAG}"
 
         }
         failure {
