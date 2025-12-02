@@ -5,6 +5,14 @@ pipeline{
             GITHUB_CREDENTIALS = 'git-hub'
             IMAGE_REPOSITORY = 'zephyr0109/cicdtest'
     }
+    parameters {
+        string(
+            name: "IMAGE_TAG",
+            defaultValue: "latest",
+            description : "배포할 Docker Image Tag"
+        )
+    }
+
     stages{
         stage("Pull docker image") {
             steps {
@@ -15,9 +23,10 @@ pipeline{
                         usernameVariable: "DOCKER_USER"
                     )
                 ]) {
+                // 여기 주목, latest 대신 IMAGE_TAG를 활용
                     sh """
                         echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                        docker pull ${IMAGE_REPOSITORY}:latest
+                        docker pull ${IMAGE_REPOSITORY}:${IMAGE_TAG}
                     """
                 }
             }
@@ -32,7 +41,8 @@ pipeline{
         }
         stage("Deploy"){
             steps {
-                sh "docker run -d --name hello-ci-web -p 8080:8080 ${IMAGE_REPOSITORY}:latest"
+                // 여기 주목, IMAGE_TAG 활용
+                sh "docker run -d --name hello-ci-web -p 8080:8080 ${IMAGE_REPOSITORY}:${IMAGE_TAG}"
             }
         }
 
@@ -51,10 +61,10 @@ pipeline{
             echo "CD pipeline finished"
         }
         success {
-            echo "CD successful: container deployed"
+            echo "CD successful: container deployed, Image Tag : ${IMAGE_TAG}"
         }
         failure {
-            echo "CD failed"
+            echo "CD failed, Image Tag : ${IMAGE_TAG}"
         }
     }
 }

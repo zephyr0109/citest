@@ -10,9 +10,18 @@ pipeline{
     stages {
         stage( 'Checkout') {
             steps {
-                git credentialsId : "${GITHUB_CREDENTIALS}",
-                 url: "https://github.com/zephyr0109/citest.git"
+                checkout scm
+            }
+        }
 
+        stage("Set Image Tag") {
+            steps {
+                script {
+                    IMAGE_TAG = sh(
+                        script : "git rev-parse --short HEAD",
+                        returnStdout : true
+                    ).trim()
+                }
             }
         }
 
@@ -40,6 +49,7 @@ pipeline{
                 passwordVariable: "DOCKER_PASS",
                 usernameVariable: "DOCKER_USER")]){
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker push ${IMAGE_REPOSITORY}:${IMAGE_TAG}"
                     sh "docker push ${IMAGE_REPOSITORY}:latest"
                 }
             }
@@ -52,7 +62,7 @@ pipeline{
 
         }
         success {
-            echo "Build and push successful"
+            echo "Build and push successful, IMAGE_TAG = $(IMAGE_TAG)"
 
         }
         failure {
