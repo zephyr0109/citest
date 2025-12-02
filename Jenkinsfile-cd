@@ -6,10 +6,10 @@ pipeline{
             IMAGE_REPOSITORY = 'zephyr0109/cicdtest'
     }
     parameters {
-        string(
-            name: "IMAGE_TAG",
-            defaultValue: "latest",
-            description : "배포할 Docker Image Tag"
+        choice(
+            name: 'IMAGE_TAG',
+            choices: ['latest'],  // Active Choice 단계에서 실제 태그로 자동 주입됨
+            description: '배포할 도커 이미지 태그 선택'
         )
     }
 

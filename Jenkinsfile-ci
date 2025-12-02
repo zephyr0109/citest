@@ -55,7 +55,9 @@ pipeline{
                 passwordVariable: "DOCKER_PASS",
                 usernameVariable: "DOCKER_USER")]){
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sleep 10
                     sh "docker push ${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+                    sleep 10
                     sh "docker push ${IMAGE_REPOSITORY}:latest"
                 }
             }
