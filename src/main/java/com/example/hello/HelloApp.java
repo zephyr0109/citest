@@ -9,7 +9,8 @@ public class HelloApp {
     public static void main(String[] args) {
         SpringApplication.run(HelloApp.class, args);
     }
+
     public String greet() {
-        return "Hello CI/CD!";
+        return "Hello CI/CD! - latest";
     }
 }
