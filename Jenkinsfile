@@ -103,6 +103,7 @@ pipeline{
             echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
         }
         always {
+            echo "GITHUB_TOKEN length: ${GITHUB_TOKEN.length()}"
             script {
                 if (isChangeRequest()) {
                     def status = currentBuild.currentResult
@@ -139,11 +140,13 @@ def isChangeRequest() {
 def postCommentToPR(text) {
     def pr = env.CHANGE_ID
     def apiUrl = "https://api.github.com/repos/${env.GITHUB_REPO}/issues/${pr}/comments"
+    withCredentials([string(credentialsId: 'git-hub', variable:"TOKEN")]){
+        sh """
+            curl -s -H "Authorization: token ${TOKEN}" \
+                 -H "Content-Type: application/json" \
+                 -d '{"body": "${text.replace("\n","\\n")}"}' \
+                 ${apiUrl}
+            """
+    }
 
-    sh """
-    curl -s -H "Authorization: token ${env.GITHUB_TOKEN}" \
-         -H "Content-Type: application/json" \
-         -d '{"body": "${text.replace("\n","\\n")}"}' \
-         ${apiUrl}
-    """
 }
