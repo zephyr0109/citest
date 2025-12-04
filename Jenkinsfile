@@ -6,6 +6,7 @@ pipeline{
         IMAGE_REPO = "${env.BRANCH_NAME == 'master' ? 'zephyr0109/cicdtest' : 'zephyr0109/cicdtest-dev'}"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
         CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
+        GITHUB_TOKEN = credentials('git-hub')
     }
     stages {
         stage("Checkout") {
@@ -95,15 +96,43 @@ pipeline{
         success {
           script {
             echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+            def message = """
+                - Build : SUCCESS
+                - Tests : SUCCESS
+                - Jenkins Build #: ${env.BUILD_NUMBER}
+            """
+            postCommentToPR(message)
+
           }
         }
         failure {
-          echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+            echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+            def status = currentBuild.currentResult
+
+            def message = """
+                        CI FAILED
+                          - stage failure : ${status}
+                      """
+            postCommentToPR(message)
+
         }
+
     }
 }
 
 // helper: changeRequest() 가 제대로 동작하지 않을 때 사용할 수 있는 함수
 def isChangeRequest() {
   return env.CHANGE_ID != null && env.CHANGE_ID != ''
+}
+
+def postCommentToPR(text) {
+    def pr = env.CHANGE_ID
+    def apiUrl = "https://api.github.com/repos/${env.REPO}/issues/${pr}/comments"
+
+    sh """
+    curl -s -H "Authorization: token ${env.GITHUB_TOKEN}" \
+         -H "Content-Type: application/json" \
+         -d '{"body": "${text.replace("\n","\\n")}"}' \
+         ${apiUrl}
+    """
 }
