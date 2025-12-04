@@ -103,7 +103,7 @@ pipeline{
         }
         always {
             script {
-                if (IS_PR) {
+                if (isChangeRequest()) {
                     def status = currentBuild.currentResult
                     def message = ""
 
