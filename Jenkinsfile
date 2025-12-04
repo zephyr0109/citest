@@ -7,7 +7,7 @@ pipeline{
         GITHUB_REPO = "zephyr0109/citest"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
         CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
-        GITHUB_TOKEN = credentials('git-hub')
+        GITHUB_TOKEN = credentials('github-token-api')
     }
     stages {
         stage("Checkout") {
@@ -140,7 +140,7 @@ def isChangeRequest() {
 def postCommentToPR(text) {
     def pr = env.CHANGE_ID
     def apiUrl = "https://api.github.com/repos/${env.GITHUB_REPO}/issues/${pr}/comments"
-    withCredentials([string(credentialsId: 'git-hub', variable:"TOKEN")]){
+    withCredentials([string(credentialsId: 'github-token-api', variable:"TOKEN")]){
         sh """
             curl -s -H "Authorization: token ${TOKEN}" \
                  -H "Content-Type: application/json" \
