@@ -1,0 +1,15 @@
+name: basic-check
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Simple PR check
+        run: echo "PR Check from GitHub Actions"
