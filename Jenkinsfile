@@ -2,79 +2,76 @@ pipeline{
     agent any
     environment {
         DOCKER_CREDENTIALS = 'docker-hub'
-        GITHUB_CREDENTIALS = 'git-hub'
-        IMAGE_REPOSITORY = 'zephyr0109/cicdtest'
+        IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+        IMAGE_REPO = "${env.BRANCH_NAME == 'master' ? 'zephyr0109/cicdtest' : 'zephyr0109/cicdtest-dev'}"
+        CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
+        CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
     }
-
-    // CI Pipeline
     stages {
-        stage( 'Checkout') {
+        stage("Checkout") {
             steps {
                 checkout scm
             }
         }
-
-        stage("Set Image Tag") {
+        stage("Build") {
             steps {
-                script {
-                    IMAGE_TAG = sh(
-                        script : "git rev-parse --short HEAD",
-                        returnStdout : true
-                    ).trim()
-
-                   env.IMAGE_TAG = IMAGE_TAG
-                   echo "IMAGE_TAG: ${IMAGE_TAG}"
-                }
+                sh "mvn clean package -DskipTests"
             }
         }
-
-        stage("Build"){
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-
         stage("Test") {
-            steps {
+            steps{
                 sh "mvn test"
             }
         }
-
-        stage("Build Docker Image"){
+        stage("Docker build") {
             steps {
-                sh "docker build -t ${IMAGE_REPOSITORY}:${IMAGE_TAG} ."
-                sh "docker tag ${IMAGE_REPOSITORY}:${IMAGE_TAG} ${IMAGE_REPOSITORY}:latest"
-
-
-            }
-        }
-
-        stage("Push Docker Image"){
-            steps {
-                withCredentials([usernamePassword(credentialsId : "$DOCKER_CREDENTIALS",
-                passwordVariable: "DOCKER_PASS",
-                usernameVariable: "DOCKER_USER")]){
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sleep 10
-                    sh "docker push ${IMAGE_REPOSITORY}:${IMAGE_TAG}"
-                    sleep 10
-                    sh "docker push ${IMAGE_REPOSITORY}:latest"
+                script {
+                    sh """
+                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
+                        docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
+                    """
                 }
             }
         }
-    }
-
-    post {
-        always {
-            echo "CI pipeline finished"
-
+        stage("Docker Login & Push"){
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
+                     usernameVariable : "DOCKER_USER",
+                      passwordVariable : "DOCKER_PASS")
+                ]) {
+                    sh """
+                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                        docker push ${IMAGE_REPO}:${IMAGE_TAG}
+                        docker push ${IMAGE_REPO}:latest
+                    """
+                }
+            }
         }
-        success {
-            echo "Build and push successful, IMAGE_TAG = ${IMAGE_TAG}"
+        stage("Deploy"){
+            steps {
+                script {
+                    sh """
+                        docker stop ${CONTAINER_NAME} || true
+                        docker rm ${CONTAINER_NAME} || true
+                        docker pull ${IMAGE_REPO}:latest
+                        docker run -d --name ${CONTAINER_NAME} \
+                            -p ${CONTAINER_PORT}:8080\
+                            ${IMAGE_REPO}:latest
+                    """
+                }
+            }
+        }
 
+        stage("Health Check"){
+            steps{
+                sh """
+                    echo "Waiting for app on ${CONTAINER_PORT}"
+                """
+            }
         }
-        failure {
-            echo "Build or test failed"
-        }
+
+
+
     }
 }
