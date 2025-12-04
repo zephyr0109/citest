@@ -11,11 +11,16 @@ pipeline{
         stage("Checkout") {
             steps {
                 checkout scm
+                script {
+                    echo "BRANCH_NAME=${env.BRANCH_NAME}"
+                    echo "CHANGE_ID=${env.CHANGE_ID}"
+                    echo "IS_PR: ${isChangeRequest()}"
+                }
             }
         }
         stage("Build") {
             steps {
-                sh "mvn clean package -DskipTests"
+                sh "mvn -DskipTests -B clean package "
             }
         }
         stage("Test") {
@@ -23,32 +28,42 @@ pipeline{
                 sh "mvn test"
             }
         }
-        stage("Docker build") {
+        stage("Docker build & push") {
+            // PR이 아닐 경우
+            when {
+                not { changeRequest() }
+            }
             steps {
                 script {
                     sh """
                         docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
                         docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
                     """
+                    withCredentials([
+                                        usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
+                                         usernameVariable : "DOCKER_USER",
+                                          passwordVariable : "DOCKER_PASS")
+                                    ]) {
+                                        sh """
+                                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                                            docker push ${IMAGE_REPO}:${IMAGE_TAG}
+                                            docker push ${IMAGE_REPO}:latest
+                                        """
+                                    }
                 }
             }
         }
-        stage("Docker Login & Push"){
-            steps {
-                withCredentials([
-                    usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
-                     usernameVariable : "DOCKER_USER",
-                      passwordVariable : "DOCKER_PASS")
-                ]) {
-                    sh """
-                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                        docker push ${IMAGE_REPO}:${IMAGE_TAG}
-                        docker push ${IMAGE_REPO}:latest
-                    """
-                }
-            }
-        }
+
         stage("Deploy"){
+            when{
+                allOf{
+                    not { changeRequest() }
+                    anyOf {
+                        branch 'develop'
+                        branch 'master'
+                    }
+                }
+            }
             steps {
                 script {
                     sh """
@@ -64,14 +79,31 @@ pipeline{
         }
 
         stage("Health Check"){
+            when {not { changeRequest()}}
             steps{
                 sh """
                     echo "Waiting for app on ${CONTAINER_PORT}"
+                    sleep 8
+                    curl -f http://localhost:${CONTAINER_PORT}/ || (echo 'smoke failed' && exit 1)
                 """
             }
         }
-
-
-
     }
+
+
+    post {
+        success {
+          script {
+            echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+          }
+        }
+        failure {
+          echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+        }
+    }
+}
+
+// helper: changeRequest() 가 제대로 동작하지 않을 때 사용할 수 있는 함수
+def isChangeRequest() {
+  return env.CHANGE_ID != null && env.CHANGE_ID != ''
 }
