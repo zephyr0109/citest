@@ -4,6 +4,7 @@ pipeline{
         DOCKER_CREDENTIALS = 'docker-hub'
         IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         IMAGE_REPO = "${env.BRANCH_NAME == 'master' ? 'zephyr0109/cicdtest' : 'zephyr0109/cicdtest-dev'}"
+        GITHUB_REPO = "zephyr0109/citest"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
         CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
         GITHUB_TOKEN = credentials('git-hub')
@@ -137,7 +138,7 @@ def isChangeRequest() {
 
 def postCommentToPR(text) {
     def pr = env.CHANGE_ID
-    def apiUrl = "https://api.github.com/repos/${env.REPO}/issues/${pr}/comments"
+    def apiUrl = "https://api.github.com/repos/${env.GITHUB_REPO}/issues/${pr}/comments"
 
     sh """
     curl -s -H "Authorization: token ${env.GITHUB_TOKEN}" \
