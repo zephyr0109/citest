@@ -94,27 +94,37 @@ pipeline{
 
     post {
         success {
-          script {
-            echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
-            def message = """
-                - Build : SUCCESS
-                - Tests : SUCCESS
-                - Jenkins Build #: ${env.BUILD_NUMBER}
-            """
-            postCommentToPR(message)
 
-          }
+            echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+
         }
         failure {
             echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
-            def status = currentBuild.currentResult
+        }
+        always {
+            script {
+                if (isChangeRequest()) {
+                    def status = currentBuild.currentResult
+                    def message = ""
 
-            def message = """
-                        CI FAILED
-                          - stage failure : ${status}
-                      """
-            postCommentToPR(message)
+                    if (status == "SUCCESS") {
+                        message = """
+                        ✔ **CI Passed**
+                        - Build: SUCCESS
+                        - Tests: SUCCESS
+                        - Jenkins Build #: ${env.BUILD_NUMBER}
+                        """
+                    } else {
+                        message = """
+                        ❌ **CI Failed**
+                        - Stage failure: ${status}
+                        - Check Jenkins console logs
+                        """
+                    }
 
+                    postCommentToPR(message)
+                }
+            }
         }
 
     }
