@@ -4,9 +4,10 @@ pipeline{
         DOCKER_CREDENTIALS = 'docker-hub'
         IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         IMAGE_REPO = "${env.BRANCH_NAME == 'master' ? 'zephyr0109/cicdtest' : 'zephyr0109/cicdtest-dev'}"
+        GITHUB_REPO = "zephyr0109/citest"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
         CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
-        GITHUB_TOKEN = credentials('git-hub')
+        GITHUB_TOKEN = credentials('github-token-api')
     }
     stages {
         stage("Checkout") {
@@ -94,27 +95,38 @@ pipeline{
 
     post {
         success {
-          script {
-            echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
-            def message = """
-                - Build : SUCCESS
-                - Tests : SUCCESS
-                - Jenkins Build #: ${env.BUILD_NUMBER}
-            """
-            postCommentToPR(message)
 
-          }
+            echo "SUCCESS: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
+
         }
         failure {
             echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
-            def status = currentBuild.currentResult
+        }
+        always {
+            echo "GITHUB_TOKEN length: ${GITHUB_TOKEN.length()}"
+            script {
+                if (isChangeRequest()) {
+                    def status = currentBuild.currentResult
+                    def message = ""
 
-            def message = """
-                        CI FAILED
-                          - stage failure : ${status}
-                      """
-            postCommentToPR(message)
+                    if (status == "SUCCESS") {
+                        message = """
+                        ✔ **CI Passed**
+                        - Build: SUCCESS
+                        - Tests: SUCCESS
+                        - Jenkins Build #: ${env.BUILD_NUMBER}
+                        """
+                    } else {
+                        message = """
+                        ❌ **CI Failed**
+                        - Stage failure: ${status}
+                        - Check Jenkins console logs
+                        """
+                    }
 
+                    postCommentToPR(message)
+                }
+            }
         }
 
     }
@@ -127,12 +139,14 @@ def isChangeRequest() {
 
 def postCommentToPR(text) {
     def pr = env.CHANGE_ID
-    def apiUrl = "https://api.github.com/repos/${env.REPO}/issues/${pr}/comments"
+    def apiUrl = "https://api.github.com/repos/${env.GITHUB_REPO}/issues/${pr}/comments"
+    withCredentials([string(credentialsId: 'github-token-api', variable:"TOKEN")]){
+        sh """
+            curl -s -H "Authorization: token ${TOKEN}" \
+                 -H "Content-Type: application/json" \
+                 -d '{"body": "${text.replace("\n","\\n")}"}' \
+                 ${apiUrl}
+            """
+    }
 
-    sh """
-    curl -s -H "Authorization: token ${env.GITHUB_TOKEN}" \
-         -H "Content-Type: application/json" \
-         -d '{"body": "${text.replace("\n","\\n")}"}' \
-         ${apiUrl}
-    """
 }
