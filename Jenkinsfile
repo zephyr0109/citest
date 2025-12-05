@@ -25,9 +25,18 @@ pipeline{
                 sh "mvn -DskipTests -B clean package "
             }
         }
-        stage("Test") {
-            steps{
-                sh "mvn test"
+        stage("Test(Parallel)") {
+            parallel{
+                stage("repository test") {
+                    steps {
+                        sh "mvn -Dtest=com.example.hello.repository.* test"
+                    }
+                }
+                stage("unit test") {
+                    steps{
+                        sh "mvn -Dtest=com.example.hello.unit.* test"
+                    }
+                }
             }
         }
         stage("Docker build & push") {
@@ -103,6 +112,8 @@ pipeline{
             echo "FAILED: ${env.BRANCH_NAME} (CHANGE_ID=${env.CHANGE_ID})"
         }
         always {
+            junit '**/target/surefire-reports/*.xml'
+
             echo "GITHUB_TOKEN length: ${GITHUB_TOKEN.length()}"
             script {
                 if (isChangeRequest()) {
