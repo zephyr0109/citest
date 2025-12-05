@@ -29,12 +29,12 @@ pipeline{
             parallel{
                 stage("repository test") {
                     steps {
-                        sh "mvn -Dtest=com.example.hello.repository.* test"
+                        sh "mvn -Dtest='com.example.hello.repository.*' test"
                     }
                 }
                 stage("unit test") {
                     steps{
-                        sh "mvn -Dtest=com.example.hello.unit.* test"
+                        sh "mvn -Dtest='com.example.hello.unit.*' test"
                     }
                 }
             }
