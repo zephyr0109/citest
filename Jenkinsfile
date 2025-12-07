@@ -29,12 +29,12 @@ pipeline{
             parallel{
                 stage("repository test") {
                     steps {
-                        sh "mvn -Dtest='com.example.hello.repository.*' test"
+                        sh 'mvn -Dtest="com.example.hello.repository.*" test'
                     }
                 }
                 stage("unit test") {
                     steps{
-                        sh "mvn -Dtest='com.example.hello.unit.*' test"
+                        sh 'mvn -Dtest="com.example.hello.unit.*" test'
                     }
                 }
             }
@@ -47,8 +47,8 @@ pipeline{
             steps {
                 script {
                     sh """
-                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
-                        docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
+                        dr build -t ${IMAGE_REPO}:${IMAGE_TAG} .
+                                                 docker tag ocke${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
                     """
                     withCredentials([
                                         usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
