@@ -84,8 +84,8 @@ pipeline{
                 script {
 
                     deployApp(
-                        containerName : CONTAINER_NAME
-                        imageRepo : IMAGE_REPO
+                        containerName : CONTAINER_NAME,
+                        imageRepo : IMAGE_REPO,
                         containerPort : CONTAINER_PORT
                     )
                 }
