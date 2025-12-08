@@ -47,7 +47,7 @@ pipeline{
             steps {
                 script {
                     sh """
-                        dr build -t ${IMAGE_REPO}:${IMAGE_TAG} .
+                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
                                                  docker tag ocke${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
                     """
                     withCredentials([
