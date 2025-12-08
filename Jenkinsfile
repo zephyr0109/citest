@@ -48,7 +48,7 @@ pipeline{
                 script {
                     sh """
                         docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
-                                                 docker tag ocke${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
+                                                 docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
                     """
                     withCredentials([
                                         usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
