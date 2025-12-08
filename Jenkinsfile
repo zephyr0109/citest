@@ -1,3 +1,5 @@
+@Library('jenkins-shared-library-test') _
+
 pipeline{
     agent any
     environment {
@@ -63,21 +65,7 @@ pipeline{
             }
             steps {
                 script {
-                    sh """
-                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} --cache-from=${IMAGE_REPO}:${IMAGE_TAG} .
-                        docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
-                    """
-                    withCredentials([
-                                        usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
-                                         usernameVariable : "DOCKER_USER",
-                                          passwordVariable : "DOCKER_PASS")
-                                    ]) {
-                                        sh """
-                                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                                            docker push ${IMAGE_REPO}:${IMAGE_TAG}
-                                            docker push ${IMAGE_REPO}:latest
-                                        """
-                                    }
+                    dockerBuild(image : IMAGE_REPO, tag : IMAGE_TAG)
                 }
             }
         }
@@ -94,14 +82,12 @@ pipeline{
             }
             steps {
                 script {
-                    sh """
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                        docker pull ${IMAGE_REPO}:latest
-                        docker run -d --name ${CONTAINER_NAME} \
-                            -p ${CONTAINER_PORT}:8080\
-                            ${IMAGE_REPO}:latest
-                    """
+
+                    deployApp(
+                        containerName : CONTAINER_NAME
+                        imageRepo : IMAGE_REPO
+                        containerPort : CONTAINER_PORT
+                    )
                 }
             }
         }
