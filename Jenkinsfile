@@ -1,13 +1,16 @@
 pipeline{
     agent any
     environment {
+        GITHUB_TOKEN = credentials('github-token-api')
         DOCKER_CREDENTIALS = 'docker-hub'
+        GITHUB_REPO = "zephyr0109/citest"
+        MAVEN_CACHE = "/Users/junyul.im/.m2"
+
         IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         IMAGE_REPO = "${env.BRANCH_NAME == 'master' ? 'zephyr0109/cicdtest' : 'zephyr0109/cicdtest-dev'}"
-        GITHUB_REPO = "zephyr0109/citest"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'master' ? 'hello-ci-prod' : 'hello-ci-dev'}"
         CONTAINER_PORT = "${env.BRANCH_NAME == 'master' ? '8080' : '8081'}"
-        GITHUB_TOKEN = credentials('github-token-api')
+
     }
     stages {
         stage("Checkout") {
@@ -22,7 +25,7 @@ pipeline{
         }
         stage("Build") {
             steps {
-                sh "mvn -DskipTests -B clean package "
+                sh "mvn -DskipTests -Dmaven.repo.local=${env.MAVEN_CACHE} clean package "
             }
         }
         stage("Test(Parallel)") {
@@ -39,6 +42,20 @@ pipeline{
                 }
             }
         }
+
+           stage("Set Image Tag") {
+                    steps {
+                        script {
+                            GIT_NUM = sh(
+                                script : "git rev-parse --short HEAD",
+                                returnStdout : true
+                            ).trim()
+                            env.IMAGE_TAG = "${env.BRANCH_NAME}-${GIT_NUM}"
+                            echo "IMAGE_TAG: ${IMAGE_TAG}"
+                        }
+                    }
+                }
+
         stage("Docker build & push") {
             // PR이 아닐 경우
             when {
@@ -47,8 +64,8 @@ pipeline{
             steps {
                 script {
                     sh """
-                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} .
-                                                 docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
+                        docker build -t ${IMAGE_REPO}:${IMAGE_TAG} --cache-from=${IMAGE_REPO}:${IMAGE_TAG} .
+                        docker tag ${IMAGE_REPO}:${IMAGE_TAG} ${IMAGE_REPO}:latest
                     """
                     withCredentials([
                                         usernamePassword(credentialsId : "${DOCKER_CREDENTIALS}",
